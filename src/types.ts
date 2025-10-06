@@ -1,80 +1,90 @@
-interface Player {
-  id?: number;
-  name: string;
-  email: string;
-  joined_date?: Date;
-}
+import { z } from 'zod';
 
-interface Game {
-  id?: number;
-  title: string;
-  genre: string;
-  release_date?: Date;
-}
+// Base schemas for database entities
+export const PlayerSchema = z.object({
+  id: z.number().int().positive().optional(),
+  name: z.string().min(1).max(100),
+  email: z.string().email(),
+  joined_date: z.date().optional(),
+});
 
-interface Score {
-  id?: number;
-  player_id: number;
-  game_id: number;
-  score: number;
-  played_at?: Date;
-}
+export const GameSchema = z.object({
+  id: z.number().int().positive().optional(),
+  title: z.string().min(1).max(200),
+  genre: z.string().min(1).max(50),
+  release_date: z.date().optional(),
+});
 
-interface DatabaseConfig {
-  user: string;
-  host: string;
-  database: string;
-  password: string;
-  port?: number;
-}
+export const ScoreSchema = z.object({
+  id: z.number().int().positive().optional(),
+  player_id: z.number().int().positive(),
+  game_id: z.number().int().positive(),
+  score: z.number().int().min(0),
+  played_at: z.date().optional(),
+});
 
-// Response types for API endpoints
-interface PlayerScore {
-  player_name: string;
-  game_title: string;
-  score: number;
-}
+export const DatabaseConfigSchema = z.object({
+  user: z.string().min(1),
+  host: z.string().min(1),
+  database: z.string().min(1),
+  password: z.string(),
+  port: z.number().int().positive().optional(),
+});
 
-interface TopPlayer {
-  player_name: string;
-  total_score: number;
-}
+// Response schemas for API endpoints
+export const PlayerScoreSchema = z.object({
+  player_name: z.string(),
+  game_title: z.string(),
+  score: z.union([z.number(), z.string()]).pipe(z.coerce.number().int()),
+});
 
-interface InactivePlayer {
-  id: number;
-  name: string;
-  email: string;
-  joined_date: Date;
-}
+export const TopPlayerSchema = z.object({
+  player_name: z.string(),
+  total_score: z.union([z.number(), z.string()]).pipe(z.coerce.number().int()),
+});
 
-interface PopularGenre {
-  genre: string;
-  times_played: number;
-}
+export const InactivePlayerSchema = z.object({
+  id: z.union([z.number(), z.string()]).pipe(z.coerce.number().int()),
+  name: z.string(),
+  email: z.string().email(),
+  joined_date: z.union([z.date(), z.string()]).pipe(z.coerce.date()),
+});
 
-interface RecentPlayer {
-  id: number;
-  name: string;
-  email: string;
-  joined_date: Date;
-  days_since_joined: number;
-}
+export const PopularGenreSchema = z.object({
+  genre: z.string(),
+  times_played: z.union([z.number(), z.string()]).pipe(z.coerce.number().int()),
+});
 
-interface FavoriteGame {
-  player_name: string;
-  game_title: string;
-  times_played: number;
-}
+export const RecentPlayerSchema = z.object({
+  id: z.union([z.number(), z.string()]).pipe(z.coerce.number().int()),
+  name: z.string(),
+  email: z.string().email(),
+  joined_date: z.union([z.date(), z.string()]).pipe(z.coerce.date()),
+  days_since_joined: z.union([z.number(), z.string()]).pipe(z.coerce.number()),
+});
 
-export { 
-  Player, 
-  Game, 
-  Score, 
-  DatabaseConfig,
-  PlayerScore,
-  TopPlayer,
-  InactivePlayer,
-  PopularGenre,
-  RecentPlayer,
-  FavoriteGame
-};
+export const FavoriteGameSchema = z.object({
+  player_name: z.string(),
+  game_title: z.string(),
+  times_played: z.union([z.number(), z.string()]).pipe(z.coerce.number().int()),
+});
+
+// API Response schemas
+export const ApiResponseSchema = <T extends z.ZodType>(dataSchema: T) =>
+  z.object({
+    success: z.boolean(),
+    data: z.array(dataSchema).optional(),
+    count: z.number().int().optional(),
+    error: z.string().optional(),
+  });
+
+export type Player = z.infer<typeof PlayerSchema>;
+export type Game = z.infer<typeof GameSchema>;
+export type Score = z.infer<typeof ScoreSchema>;
+export type DatabaseConfig = z.infer<typeof DatabaseConfigSchema>;
+export type PlayerScore = z.infer<typeof PlayerScoreSchema>;
+export type TopPlayer = z.infer<typeof TopPlayerSchema>;
+export type InactivePlayer = z.infer<typeof InactivePlayerSchema>;
+export type PopularGenre = z.infer<typeof PopularGenreSchema>;
+export type RecentPlayer = z.infer<typeof RecentPlayerSchema>;
+export type FavoriteGame = z.infer<typeof FavoriteGameSchema>;

@@ -1,28 +1,41 @@
 import express, { Request, Response, Application } from 'express';
 import { Pool } from 'pg';
 import dotenv from 'dotenv';
+import { z } from 'zod';
 import { 
-  DatabaseConfig, 
-  PlayerScore, 
-  TopPlayer, 
-  InactivePlayer, 
-  PopularGenre, 
-  RecentPlayer, 
-  FavoriteGame 
+  DatabaseConfigSchema, 
+  PlayerScoreSchema, 
+  TopPlayerSchema, 
+  InactivePlayerSchema, 
+  PopularGenreSchema, 
+  RecentPlayerSchema, 
+  FavoriteGameSchema,
+  type DatabaseConfig,
 } from './types';
+import { sendValidatedResponse, sendErrorResponse, validateDatabaseRows } from './middleware/responseHelpers';
 
 dotenv.config();
 
+const EnvSchema = z.object({
+  PORT: z.string().default('3000').transform(Number),
+  DB_USER: z.string().default('postgres'),
+  DB_HOST: z.string().default('localhost'),
+  DB_DATABASE: z.string().default('game_studio'),
+  DB_PASSWORD: z.string().default('password'),
+  DB_PORT: z.string().default('5432').transform(Number),
+});
 
-const PORT: number = parseInt(process.env.PORT || '3000', 10);
+const env = EnvSchema.parse(process.env);
 
-const dbConfig: DatabaseConfig = {
-  user: process.env.DB_USER || 'postgres',
-  host: process.env.DB_HOST || 'localhost',
-  database: process.env.DB_DATABASE || 'game_studio',
-  password: process.env.DB_PASSWORD || 'password',
-  port: parseInt(process.env.DB_PORT || '5432', 10),
-};
+const PORT: number = env.PORT;
+
+const dbConfig: DatabaseConfig = DatabaseConfigSchema.parse({
+  user: env.DB_USER,
+  host: env.DB_HOST,
+  database: env.DB_DATABASE,
+  password: env.DB_PASSWORD,
+  port: env.DB_PORT,
+});
 
 const app: Application = express();
 const pool: Pool = new Pool(dbConfig);
@@ -53,18 +66,12 @@ app.get('/players-scores', async (req: Request, res: Response): Promise<void> =>
     `;
     
     const result = await pool.query(query);
+    const validatedData = validateDatabaseRows(PlayerScoreSchema, result.rows);
     
-    res.status(200).json({
-      success: true,
-      data: result.rows as PlayerScore[],
-      count: result.rows.length
-    });
+    sendValidatedResponse(res, z.array(PlayerScoreSchema), validatedData);
   } catch (err) {
     console.error('Error fetching players scores:', err);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch players scores'
-    });
+    sendErrorResponse(res, 'Failed to fetch players scores');
   }
 });
 
@@ -83,18 +90,12 @@ app.get('/top-players', async (req: Request, res: Response): Promise<void> => {
     `;
     
     const result = await pool.query(query);
+    const validatedData = validateDatabaseRows(TopPlayerSchema, result.rows);
     
-    res.status(200).json({
-      success: true,
-      data: result.rows as TopPlayer[],
-      count: result.rows.length
-    });
+    sendValidatedResponse(res, z.array(TopPlayerSchema), validatedData);
   } catch (err) {
     console.error('Error fetching top players:', err);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch top players'
-    });
+    sendErrorResponse(res, 'Failed to fetch top players');
   }
 });
 
@@ -114,18 +115,12 @@ app.get('/inactive-players', async (req: Request, res: Response): Promise<void> 
     `;
     
     const result = await pool.query(query);
+    const validatedData = validateDatabaseRows(InactivePlayerSchema, result.rows);
     
-    res.status(200).json({
-      success: true,
-      data: result.rows as InactivePlayer[],
-      count: result.rows.length
-    });
+    sendValidatedResponse(res, z.array(InactivePlayerSchema), validatedData);
   } catch (err) {
     console.error('Error fetching inactive players:', err);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch inactive players'
-    });
+    sendErrorResponse(res, 'Failed to fetch inactive players');
   }
 });
 
@@ -143,18 +138,12 @@ app.get('/popular-genres', async (req: Request, res: Response): Promise<void> =>
     `;
     
     const result = await pool.query(query);
+    const validatedData = validateDatabaseRows(PopularGenreSchema, result.rows);
     
-    res.status(200).json({
-      success: true,
-      data: result.rows as PopularGenre[],
-      count: result.rows.length
-    });
+    sendValidatedResponse(res, z.array(PopularGenreSchema), validatedData);
   } catch (err) {
     console.error('Error fetching popular genres:', err);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch popular genres'
-    });
+    sendErrorResponse(res, 'Failed to fetch popular genres');
   }
 });
 
@@ -174,18 +163,12 @@ app.get('/recent-players', async (req: Request, res: Response): Promise<void> =>
     `;
     
     const result = await pool.query(query);
+    const validatedData = validateDatabaseRows(RecentPlayerSchema, result.rows);
     
-    res.status(200).json({
-      success: true,
-      data: result.rows as RecentPlayer[],
-      count: result.rows.length
-    });
+    sendValidatedResponse(res, z.array(RecentPlayerSchema), validatedData);
   } catch (err) {
     console.error('Error fetching recent players:', err);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch recent players'
-    });
+    sendErrorResponse(res, 'Failed to fetch recent players');
   }
 });
 
@@ -214,27 +197,18 @@ app.get('/favorite-games', async (req: Request, res: Response): Promise<void> =>
     `;
     
     const result = await pool.query(query);
+    const validatedData = validateDatabaseRows(FavoriteGameSchema, result.rows);
     
-    res.status(200).json({
-      success: true,
-      data: result.rows as FavoriteGame[],
-      count: result.rows.length
-    });
+    sendValidatedResponse(res, z.array(FavoriteGameSchema), validatedData);
   } catch (err) {
     console.error('Error fetching favorite games:', err);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch favorite games'
-    });
+    sendErrorResponse(res, 'Failed to fetch favorite games');
   }
 });
 
 
 app.use((req: Request, res: Response) => {
-  res.status(404).json({
-    success: false,
-    error: 'Endpoint not found'
-  });
+  sendErrorResponse(res, 'Endpoint not found', 404);
 });
 
 // Some extra things i wanted to add :)
